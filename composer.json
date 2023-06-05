@@ -1,5 +1,5 @@
 {
-    "name": "highcore/registry-bundle",
+    "name": "highcore/symfony-registry",
     "description": "Symfony Registry Bundle with all compiler passes for highcore/registry package.",
     "type": "library",
     "license": "MIT",
