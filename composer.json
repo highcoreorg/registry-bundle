@@ -1,0 +1,33 @@
+{
+    "name": "highcore/registry-bundle",
+    "description": "Symfony Registry Bundle with all compiler passes for highcore/registry package.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Highcore\\Registry\\Symfony\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "loper",
+            "email": "bizrenay@gmail.com"
+        },
+        {
+            "name": "Highcore Team",
+            "homepage": "https://highcore.org/team"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://highcore-repo.0x2c.cc"
+        }
+    ],
+    "require": {
+        "symfony/http-kernel": "^5.4 || ^6.0",
+        "symfony/dependency-injection": "^5.4 || ^6.0",
+        "symfony/config": "^5.4 || ^6.0",
+        "highcore/registry": "^2.0"
+    }
+}
