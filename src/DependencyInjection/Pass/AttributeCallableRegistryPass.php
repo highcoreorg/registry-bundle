@@ -17,7 +17,7 @@ use Highcore\Component\Registry\Attribute\AttributeMethodReflection;
 use Highcore\Component\Registry\Attribute\IdentityServiceAttributeInterface;
 use Highcore\Component\Registry\Attribute\ServiceAttributeInterface;
 use Highcore\Component\Registry\CallableServiceRegistry;
-use Highcore\Registry\Symfony\Resolver\CallableRegistryIdentifierResolver;
+use Highcore\Registry\Symfony\Resolver\CallableIdentifierResolver;
 use Spiral\Attributes\AttributeReader;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -38,7 +38,7 @@ final class AttributeCallableRegistryPass implements CompilerPassInterface
         private readonly string $targetClassAttribute,
         private readonly string $targetMethodAttribute,
         private readonly ?string $interface = null,
-        private readonly null|CallableRegistryIdentifierResolver|\Closure $identifierResolver = null,
+        private readonly null|CallableIdentifierResolver|\Closure $identifierResolver = null,
     ) {
     }
 

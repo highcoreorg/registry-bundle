@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Highcore\Registry\Symfony\Resolver;
 
-interface CallableRegistryIdentifierResolver
+interface CallableIdentifierResolver
 {
     public function resolve(
         \ReflectionClass $class,

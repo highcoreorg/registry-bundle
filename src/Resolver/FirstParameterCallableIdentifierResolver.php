@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Highcore\Registry\Symfony\Resolver;
 
-final class FirstParameterCallableRegistryIdentifierResolver implements CallableRegistryIdentifierResolver
+final class FirstParameterCallableIdentifierResolver implements CallableIdentifierResolver
 {
     public function resolve(
         \ReflectionClass $class,
@@ -19,15 +19,19 @@ final class FirstParameterCallableRegistryIdentifierResolver implements Callable
             ));
         }
 
-        $firstParameterType = $method->getParameters()[0]->getType();
+        $parameter = $method->getParameters()[0];
 
-        if (!($firstParameterType instanceof \ReflectionNamedType) || !class_exists($firstParameterType->getName())) {
+        if (!$parameter->hasType()
+            || $parameter->getType() instanceof \ReflectionUnionType
+            || $parameter->getType()->isBuiltin()
+            || (new \ReflectionClass($parameter->getType()->getName()))->isInterface()
+        ) {
             throw new \LogicException(\sprintf(
                 'First parameter of handler method "%s::%s" should be of Command class.',
                 $class->getName(), $method->getName()
             ));
         }
 
-        return $firstParameterType->getName();
+        return $parameter->getName();
     }
 }
