@@ -16,7 +16,7 @@ namespace Highcore\Registry\Symfony\DependencyInjection\Pass;
 use Highcore\Component\Registry\Attribute\AttributeMethodReflection;
 use Highcore\Component\Registry\Attribute\IdentityServiceAttributeInterface;
 use Highcore\Component\Registry\Attribute\ServiceAttributeInterface;
-use Highcore\Component\Registry\CallableServiceRegistry;
+use Highcore\Component\Registry\CallableRegistry;
 use Highcore\Registry\Symfony\Resolver\CallableIdentifierResolver;
 use Spiral\Attributes\AttributeReader;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -27,7 +27,7 @@ use Symfony\Component\DependencyInjection\Definition;
  * @template A
  * @template B
  */
-final class AttributeCallableRegistryPass implements CompilerPassInterface
+final class AttributeCallableAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
 {
     /**
      * @property class-string<A> $targetAttributeClass
@@ -40,36 +40,12 @@ final class AttributeCallableRegistryPass implements CompilerPassInterface
         private readonly ?string $interface = null,
         private readonly null|CallableIdentifierResolver|\Closure $identifierResolver = null,
     ) {
-    }
-
-    /**
-     * @throws \ReflectionException
-     */
-    public function process(ContainerBuilder $container): void
-    {
-        $this->setupRegistryDefinition($container);
-
-        foreach ($container->getDefinitions() as $definition) {
-            if (!$this->accept($definition)) {
-                continue;
-            }
-
-            $class = $container->getReflectionClass($definition->getClass(), false);
-            $attributes = null === $class
-                ? []
-                : $class->getAttributes($this->targetClassAttribute, \ReflectionAttribute::IS_INSTANCEOF);
-
-            if (!($class instanceof \ReflectionClass) || 0 === \count($attributes)) {
-                continue;
-            }
-
-            $this->processClass($container, $definition, $attributes);
-        }
-    }
-
-    public function accept(Definition $definition): bool
-    {
-        return $definition->isAutoconfigured() && !$definition->hasTag('container.ignore_attributes');
+        parent::__construct(
+            targetClassAttribute: $this->targetClassAttribute,
+            definition: $this->definition,
+            definitionClass: CallableRegistry::class,
+            interface: $this->interface,
+        );
     }
 
     /**
@@ -118,15 +94,6 @@ final class AttributeCallableRegistryPass implements CompilerPassInterface
             $registryDefinition->addMethodCall('register', [
                 $identifier, $definition, $method->getName(),
             ]);
-        }
-    }
-
-    public function setupRegistryDefinition(ContainerBuilder $container): void
-    {
-        $definitionArgs = null === $this->targetClassAttribute ? [] : [$this->interface];
-
-        if (!$container->hasDefinition($this->definition)) {
-            $container->setDefinition($this->definition, new Definition(CallableServiceRegistry::class, $definitionArgs));
         }
     }
 
