@@ -29,7 +29,7 @@ use Symfony\Component\DependencyInjection\Reference;
 /**
  * @template A
  */
-final class AttributeServiceAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
+final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
 {
     public const DEFAULT_REGISTRIES = [
         IdentitySinglePrioritizedServiceRegistryInterface::class,

@@ -27,7 +27,7 @@ use Symfony\Component\DependencyInjection\Definition;
  * @template A
  * @template B
  */
-final class AttributeCallableAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
+final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
 {
     /**
      * @property class-string<A> $targetAttributeClass
