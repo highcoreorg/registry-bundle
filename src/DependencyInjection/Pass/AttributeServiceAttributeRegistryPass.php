@@ -109,6 +109,7 @@ final class AttributeServiceAttributeRegistryPass extends AbstractAttributeRegis
 
         /** @var IdentityServiceAttributeInterface|PrioritizedServiceAttributeInterface|ServiceAttributeInterface $attributeInstance */
         $arguments = match ($registryDefinitionInterface) {
+            IdentitySinglePrioritizedServiceRegistryInterface::class => [$identifier, $reference, $attributeInstance->getPriority()],
             SinglePrioritizedServiceRegistryInterface::class => [$reference, $attributeInstance->getPriority()],
             IdentityServiceRegistryInterface::class => [$identifier, $reference],
             ServiceRegistryInterface::class => [$reference],
