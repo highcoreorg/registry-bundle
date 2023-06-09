@@ -37,12 +37,16 @@ abstract class AbstractAttributeRegistryPass
                 continue;
             }
 
-            $class = $container->getReflectionClass($definition->getClass(), false);
-            $attributes = null === $class
+            $reflector = $container->getReflectionClass($definition->getClass(), false);
+            $attributes = null === $reflector
                 ? []
-                : $class->getAttributes($this->targetClassAttribute, \ReflectionAttribute::IS_INSTANCEOF);
+                : $reflector->getAttributes($this->targetClassAttribute, \ReflectionAttribute::IS_INSTANCEOF);
 
-            if (!($class instanceof \ReflectionClass) || 0 === \count($attributes)) {
+            if (!($reflector instanceof \ReflectionClass) || 0 === \count($attributes)) {
+                continue;
+            }
+
+            if (null !== $this->interface && !$reflector->implementsInterface($this->interface)) {
                 continue;
             }
 
