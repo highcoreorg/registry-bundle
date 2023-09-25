@@ -16,6 +16,7 @@ namespace Highcore\Registry\Symfony\DependencyInjection\Pass;
 use Highcore\Component\Registry\Attribute\IdentityServiceAttributeInterface;
 use Highcore\Component\Registry\Attribute\PrioritizedServiceAttributeInterface;
 use Highcore\Component\Registry\Attribute\ServiceAttributeInterface;
+use Highcore\Component\Registry\IdentityPrioritizedServiceRegistryInterface;
 use Highcore\Component\Registry\IdentityServiceRegistryInterface;
 use Highcore\Component\Registry\IdentitySinglePrioritizedServiceRegistryInterface;
 use Highcore\Component\Registry\ServiceRegistry;
@@ -33,6 +34,7 @@ final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass i
 {
     public const DEFAULT_REGISTRIES = [
         IdentitySinglePrioritizedServiceRegistryInterface::class,
+        IdentityPrioritizedServiceRegistryInterface::class,
         SinglePrioritizedServiceRegistryInterface::class,
         IdentityServiceRegistryInterface::class,
         ServiceRegistryInterface::class,
@@ -40,8 +42,20 @@ final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass i
 
     public const REGISTRY_REQUIRED_ATTRIBUTE_MAP = [
         [
-            [SinglePrioritizedServiceRegistryInterface::class, IdentitySinglePrioritizedServiceRegistryInterface::class],
+            [
+                SinglePrioritizedServiceRegistryInterface::class,
+                IdentityPrioritizedServiceRegistryInterface::class,
+                IdentitySinglePrioritizedServiceRegistryInterface::class,
+            ],
             PrioritizedServiceAttributeInterface::class,
+        ],
+        [
+            [
+                IdentityServiceRegistryInterface::class,
+                IdentityPrioritizedServiceRegistryInterface::class,
+                IdentitySinglePrioritizedServiceRegistryInterface::class,
+            ],
+            IdentityServiceAttributeInterface::class,
         ],
         [
             [IdentityServiceRegistryInterface::class, ServiceRegistryInterface::class],
@@ -109,7 +123,8 @@ final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass i
 
         /** @var IdentityServiceAttributeInterface|PrioritizedServiceAttributeInterface|ServiceAttributeInterface $attributeInstance */
         $arguments = match ($registryDefinitionInterface) {
-            IdentitySinglePrioritizedServiceRegistryInterface::class => [$identifier, $reference, $attributeInstance->getPriority()],
+            IdentitySinglePrioritizedServiceRegistryInterface::class,
+            IdentityPrioritizedServiceRegistryInterface::class => [$identifier, $reference, $attributeInstance->getPriority()],
             SinglePrioritizedServiceRegistryInterface::class => [$reference, $attributeInstance->getPriority()],
             IdentityServiceRegistryInterface::class => [$identifier, $reference],
             ServiceRegistryInterface::class => [$reference],
@@ -133,9 +148,8 @@ final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass i
         $registry = $this->getActualRegistryFromDefinition($this->definitionClass);
 
         foreach (self::REGISTRY_REQUIRED_ATTRIBUTE_MAP as [$registries, $requiredAttributeInterface]) {
-            if (in_array($registry, $registries, true) && !(
-                    $attributeInstance instanceof $requiredAttributeInterface
-                )) {
+            $attributeIsCorrect = $attributeInstance instanceof $requiredAttributeInterface;
+            if (in_array($registry, $registries, true) && !$attributeIsCorrect) {
                 throw new \LogicException(\sprintf(
                     'Attribute #[%s] should implements "%s"',
                     get_class($attributeInstance),

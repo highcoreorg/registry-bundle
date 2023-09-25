@@ -56,7 +56,7 @@ abstract class AbstractAttributeRegistryPass
 
     protected function setupRegistryDefinition(ContainerBuilder $container): void
     {
-        $definitionArgs = null === $this->targetClassAttribute ? [] : [$this->interface];
+        $definitionArgs = null === $this->interface ? [] : [$this->interface];
 
         if (!$container->hasDefinition($this->definition)) {
             $container->setDefinition($this->definition, new Definition($this->definitionClass, $definitionArgs));
