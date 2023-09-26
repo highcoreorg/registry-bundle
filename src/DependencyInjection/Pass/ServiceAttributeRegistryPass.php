@@ -153,7 +153,7 @@ final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass i
                 throw new \LogicException(\sprintf(
                     'Attribute #[%s] should implements "%s"',
                     get_class($attributeInstance),
-                    PrioritizedServiceAttributeInterface::class
+                    $requiredAttributeInterface,
                 ));
             }
         }
