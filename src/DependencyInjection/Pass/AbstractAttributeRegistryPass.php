@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Highcore\Registry\Symfony\DependencyInjection\Pass;
+namespace Highcore\Registry\Bundle\DependencyInjection\Pass;
 
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;

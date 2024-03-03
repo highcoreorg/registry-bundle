@@ -11,13 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Highcore\Registry\Symfony\DependencyInjection\Pass;
+namespace Highcore\Registry\Bundle\DependencyInjection\Pass;
 
 use Highcore\Component\Registry\Attribute\AttributeMethodReflection;
 use Highcore\Component\Registry\Attribute\IdentityServiceAttributeInterface;
 use Highcore\Component\Registry\Attribute\ServiceAttributeInterface;
 use Highcore\Component\Registry\CallableRegistry;
-use Highcore\Registry\Symfony\Resolver\CallableIdentifierResolver;
+use Highcore\Registry\Bundle\Resolver\CallableIdentifierResolver;
 use Spiral\Attributes\AttributeReader;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;

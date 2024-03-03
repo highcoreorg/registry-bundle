@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Highcore\Registry\Symfony\Resolver;
+namespace Highcore\Registry\Bundle\Resolver;
 
 interface CallableIdentifierResolver
 {
