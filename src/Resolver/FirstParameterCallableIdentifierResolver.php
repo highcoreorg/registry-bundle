@@ -6,6 +6,10 @@ namespace Highcore\Registry\Bundle\Resolver;
 
 final class FirstParameterCallableIdentifierResolver implements CallableIdentifierResolver
 {
+    public function __construct(private readonly bool $allowInterface = true)
+    {
+    }
+
     public function resolve(
         \ReflectionClass $class,
         \ReflectionMethod $method,
@@ -15,7 +19,8 @@ final class FirstParameterCallableIdentifierResolver implements CallableIdentifi
         if (1 !== $method->getNumberOfRequiredParameters()) {
             throw new \LogicException(\sprintf(
                 'Handler method "%s::%s" should have only one argument, argument of command',
-                $class->getName(), $method->getName()
+                $class->getName(),
+                $method->getName()
             ));
         }
 
@@ -24,11 +29,19 @@ final class FirstParameterCallableIdentifierResolver implements CallableIdentifi
         if (!$parameter->hasType()
             || $parameter->getType() instanceof \ReflectionUnionType
             || $parameter->getType()->isBuiltin()
-            || (new \ReflectionClass($parameter->getType()->getName()))->isInterface()
         ) {
             throw new \LogicException(\sprintf(
-                'First parameter of handler method "%s::%s" should be of Command class.',
-                $class->getName(), $method->getName()
+                'First parameter of the "%s::%s" method must be a single class type.',
+                $class->getName(),
+                $method->getName()
+            ));
+        }
+
+        if (!$this->allowInterface && (new \ReflectionClass($parameter->getType()->getName()))->isInterface()) {
+            throw new \LogicException(\sprintf(
+                'First parameter of the "%s::%s" should be an class, interface type does not allowed.',
+                $class->getName(),
+                $method->getName()
             ));
         }
 

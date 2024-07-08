@@ -32,50 +32,20 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
 {
-    public const DEFAULT_REGISTRIES = [
-        IdentitySinglePrioritizedServiceRegistryInterface::class,
-        IdentityPrioritizedServiceRegistryInterface::class,
-        SinglePrioritizedServiceRegistryInterface::class,
-        IdentityServiceRegistryInterface::class,
-        ServiceRegistryInterface::class,
-    ];
-
-    public const REGISTRY_REQUIRED_ATTRIBUTE_MAP = [
-        [
-            [
-                SinglePrioritizedServiceRegistryInterface::class,
-                IdentityPrioritizedServiceRegistryInterface::class,
-                IdentitySinglePrioritizedServiceRegistryInterface::class,
-            ],
-            PrioritizedServiceAttributeInterface::class,
-        ],
-        [
-            [
-                IdentityServiceRegistryInterface::class,
-                IdentityPrioritizedServiceRegistryInterface::class,
-                IdentitySinglePrioritizedServiceRegistryInterface::class,
-            ],
-            IdentityServiceAttributeInterface::class,
-        ],
-        [
-            [IdentityServiceRegistryInterface::class, ServiceRegistryInterface::class],
-            ServiceAttributeInterface::class
-        ],
-    ];
 
     /**
      * @param class-string<A> $targetClassAttribute
      * @param class-string $definitionClass
      */
     public function __construct(
-        private readonly string $definition,
+        private readonly string $definitionId,
+        private readonly string $definitionClass,
         private readonly string $targetClassAttribute,
-        private readonly string $definitionClass = ServiceRegistry::class,
         private readonly ?string $interface = null,
     ) {
         parent::__construct(
             targetClassAttribute: $this->targetClassAttribute,
-            definition: $this->definition,
+            definitionId: $this->definitionId,
             definitionClass: $this->definitionClass,
             interface: $this->interface,
         );
@@ -84,92 +54,41 @@ final class ServiceAttributeRegistryPass extends AbstractAttributeRegistryPass i
     /**
      * @param \ReflectionAttribute[] $attributes
      */
-    public function processClass(ContainerBuilder $container, Definition $definition, array $attributes): void
-    {
-        if (1 !== count($attributes)) {
-            throw new \LogicException(sprintf('Attribute #[%s] should be declared once only.',
-                $this->targetClassAttribute));
-        }
-
-        $classAttributeClass = \array_pop($attributes);
-        if ($classAttributeClass->getTarget() !== \Attribute::TARGET_CLASS) {
-            throw new \LogicException(sprintf(
-                'Attribute "#[%s]" target should be only "%s::TARGET_CLASS"',
-                $classAttributeClass->getName(), \Attribute::class
-            ));
-        }
-
-        $reflector = new \ReflectionClass($definition->getClass());
-        $attributeInstance = $classAttributeClass->newInstance();
-        $this->validateAttributeWithRegistryDefinition($attributeInstance);
-
-        if (!($attributeInstance instanceof ServiceAttributeInterface)) {
-            throw new \LogicException(sprintf(
-                'Attribute #[%s] should implements "%s"',
-                $classAttributeClass->getName(), ServiceAttributeInterface::class
-            ));
-        }
-
-        $registryDefinition = $container->getDefinition($this->definition);
-        $reference = new Reference($definition->innerServiceId ?? $definition->getClass());
-        $identifier = $this->resolveIdentifier($reflector, $attributeInstance);
-
-        if (!$container->hasDefinition($identifier)) {
-            $container->setDefinition($identifier, $definition);
-            $reference = new Reference($identifier);
-        }
+    public function processClass(
+        \ReflectionClass $reflector,
+        object $classAttributeInstance,
+        Definition $registryDefinition,
+        ContainerBuilder $container,
+        Definition $definition,
+        array $attributes
+    ): void {
+        $this->validateAttributeWithRegistryDefinition($classAttributeInstance);
+        $identifier = $this->resolveIdentifier($reflector, $classAttributeInstance);
 
         $registryDefinitionInterface = $this->getActualRegistryFromDefinition($this->definitionClass);
 
-        /** @var IdentityServiceAttributeInterface|PrioritizedServiceAttributeInterface|ServiceAttributeInterface $attributeInstance */
+        /** @var IdentityServiceAttributeInterface|PrioritizedServiceAttributeInterface|ServiceAttributeInterface $classAttributeInstance */
         $arguments = match ($registryDefinitionInterface) {
             IdentitySinglePrioritizedServiceRegistryInterface::class,
-            IdentityPrioritizedServiceRegistryInterface::class => [$identifier, $reference, $attributeInstance->getPriority()],
-            SinglePrioritizedServiceRegistryInterface::class => [$reference, $attributeInstance->getPriority()],
-            IdentityServiceRegistryInterface::class => [$identifier, $reference],
-            ServiceRegistryInterface::class => [$reference],
+            IdentityPrioritizedServiceRegistryInterface::class => [
+                $identifier,
+                $definition,
+                $classAttributeInstance->getPriority()
+            ],
+            SinglePrioritizedServiceRegistryInterface::class => [$definition, $classAttributeInstance->getPriority()],
+            IdentityServiceRegistryInterface::class => [$identifier, $definition],
+            ServiceRegistryInterface::class => [$definition],
         };
 
         $registryDefinition->addMethodCall('register', $arguments);
     }
 
-    private function resolveIdentifier(\ReflectionClass $reflector, object $classAttribute): string
+    private function resolveIdentifier(\ReflectionClass $reflector, object $classAttributeInstance): string
     {
-        if (!($classAttribute instanceof IdentityServiceAttributeInterface) || !$classAttribute->hasIdentifier()) {
+        if (!($classAttributeInstance instanceof IdentityServiceAttributeInterface) || !$classAttributeInstance->hasIdentifier()) {
             return $reflector->getName();
         }
 
-        return $classAttribute->getIdentifier();
-    }
-
-    /** @noinspection NotOptimalIfConditionsInspection */
-    private function validateAttributeWithRegistryDefinition(object $attributeInstance): void
-    {
-        $registry = $this->getActualRegistryFromDefinition($this->definitionClass);
-
-        foreach (self::REGISTRY_REQUIRED_ATTRIBUTE_MAP as [$registries, $requiredAttributeInterface]) {
-            $attributeIsCorrect = $attributeInstance instanceof $requiredAttributeInterface;
-            if (in_array($registry, $registries, true) && !$attributeIsCorrect) {
-                throw new \LogicException(\sprintf(
-                    'Attribute #[%s] should implements "%s"',
-                    get_class($attributeInstance),
-                    $requiredAttributeInterface,
-                ));
-            }
-        }
-    }
-
-    private function getActualRegistryFromDefinition(string $definitionClass): string
-    {
-        foreach (self::DEFAULT_REGISTRIES as $registry) {
-            if (is_a($definitionClass, $registry, true)) {
-                return $registry;
-            }
-        }
-
-        throw new \LogicException(\sprintf(
-            'Class "%s::class" does not implement any available registry type: [%s]',
-            $definitionClass, implode(', ', self::DEFAULT_REGISTRIES)
-        ));
+        return $classAttributeInstance->getIdentifier();
     }
 }

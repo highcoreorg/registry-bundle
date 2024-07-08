@@ -15,8 +15,13 @@ namespace Highcore\Registry\Bundle\DependencyInjection\Pass;
 
 use Highcore\Component\Registry\Attribute\AttributeMethodReflection;
 use Highcore\Component\Registry\Attribute\IdentityServiceAttributeInterface;
+use Highcore\Component\Registry\Attribute\PrioritizedServiceAttributeInterface;
 use Highcore\Component\Registry\Attribute\ServiceAttributeInterface;
-use Highcore\Component\Registry\CallableRegistry;
+use Highcore\Component\Registry\IdentityPrioritizedServiceRegistryInterface;
+use Highcore\Component\Registry\IdentityServiceRegistryInterface;
+use Highcore\Component\Registry\IdentitySinglePrioritizedServiceRegistryInterface;
+use Highcore\Component\Registry\ServiceRegistryInterface;
+use Highcore\Component\Registry\SinglePrioritizedServiceRegistryInterface;
 use Highcore\Registry\Bundle\Resolver\CallableIdentifierResolver;
 use Spiral\Attributes\AttributeReader;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -34,7 +39,8 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
      * @property class-string<B> $targetAttributeMethod
      */
     public function __construct(
-        private readonly string $definition,
+        private readonly string $definitionId,
+        private readonly string $definitionClass,
         private readonly string $targetClassAttribute,
         private readonly string $targetMethodAttribute,
         private readonly ?string $interface = null,
@@ -42,8 +48,8 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
     ) {
         parent::__construct(
             targetClassAttribute: $this->targetClassAttribute,
-            definition: $this->definition,
-            definitionClass: CallableRegistry::class,
+            definitionId: $this->definitionId,
+            definitionClass: $this->definitionClass,
             interface: $this->interface,
         );
     }
@@ -51,49 +57,65 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
     /**
      * @param \ReflectionAttribute[] $attributes
      */
-    public function processClass(ContainerBuilder $container, Definition $definition, array $attributes): void
-    {
-        if (1 !== count($attributes)) {
-            throw new \LogicException(sprintf('Attribute #[%s] should be declared once only.', $this->targetClassAttribute));
-        }
-
-        $classAttributeClass = \array_pop($attributes);
-        if ($classAttributeClass->getTarget() !== \Attribute::TARGET_CLASS) {
-            throw new \LogicException(sprintf(
-                'Attribute "#[%s]" target should be only "%s::TARGET_CLASS"',
-                $classAttributeClass->getName(), \Attribute::class
-            ));
-        }
-
-        $registryDefinition = $container->getDefinition($this->definition);
-        $reflector = new \ReflectionClass($definition->getClass());
-        $classAttribute = $classAttributeClass->newInstance();
-
-        if (!($classAttribute instanceof ServiceAttributeInterface)) {
-            throw new \LogicException(sprintf(
-                'Attribute #[%s] should implements "%s"',
-                $classAttributeClass->getName(), ServiceAttributeInterface::class
-            ));
-        }
+    public function processClass(
+        \ReflectionClass $reflector,
+        object $classAttributeInstance,
+        Definition $registryDefinition,
+        ContainerBuilder $container,
+        Definition $definition,
+        array $attributes
+    ): void {
+        $this->validateAttributeWithRegistryDefinition($classAttributeInstance);
 
         static $attributeReader = new AttributeReader();
         $attributeMethodReflection = new AttributeMethodReflection($reflector, $attributeReader);
-
         foreach ($attributeMethodReflection->getMethodsHasAttribute($this->targetMethodAttribute) as $method) {
             $methodAttribute = $attributeReader->firstFunctionMetadata($method, $this->targetMethodAttribute);
-            $identifier = $this->resolveIdentifier($reflector, $method, $methodAttribute, $classAttribute);
+            $identifier = $this->resolveIdentifier($reflector, $method, $methodAttribute, $classAttributeInstance);
 
             if (null === $identifier) {
-                throw new \LogicException(sprintf(
-                    'Method "%s::%s" must implement "%s" or %s("%s") must have a resolver identifier.',
-                    $reflector->getName(), $method->getName(), IdentityServiceAttributeInterface::class,
-                    self::class, $this->definition,
-                ));
+                throw new \LogicException(
+                    sprintf(
+                        'Method "%s::%s" must implement "%s" or %s("%s") must have a resolver identifier.',
+                        $reflector->getName(),
+                        $method->getName(),
+                        IdentityServiceAttributeInterface::class,
+                        self::class,
+                        $this->definitionId,
+                    )
+                );
             }
 
-            $registryDefinition->addMethodCall('register', [
-                $identifier, $definition, $method->getName(),
-            ]);
+            $id = sprintf('%s.closure.instance', str_replace(['\\', '/'], '.', $identifier));
+            $callableDefinition = $container
+                ->setDefinition(
+                    id: $id,
+                    definition: new Definition(
+                        class: \Closure::class,
+                        arguments: [
+                            [$definition, $method->getName()]
+                        ],
+                    )
+                )
+                ->setFactory([\Closure::class, 'fromCallable'])
+            ;
+
+            $registryDefinitionInterface = $this->getActualRegistryFromDefinition($this->definitionClass);
+
+            /** @var IdentityServiceAttributeInterface|PrioritizedServiceAttributeInterface|ServiceAttributeInterface $classAttributeInstance */
+            $arguments = match ($registryDefinitionInterface) {
+                IdentitySinglePrioritizedServiceRegistryInterface::class,
+                IdentityPrioritizedServiceRegistryInterface::class => [
+                    $identifier,
+                    $callableDefinition,
+                    $classAttributeInstance->getPriority()
+                ],
+                SinglePrioritizedServiceRegistryInterface::class => [$callableDefinition, $classAttributeInstance->getPriority()],
+                IdentityServiceRegistryInterface::class => [$identifier, $callableDefinition],
+                ServiceRegistryInterface::class => [$callableDefinition],
+            };
+
+            $registryDefinition->addMethodCall('register', $arguments);
         }
     }
 
@@ -103,38 +125,40 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
         object $methodAttribute,
         object $classAttribute
     ): ?string {
-        if ($methodAttribute instanceof IdentityServiceAttributeInterface && $methodAttribute->hasIdentifier()) {
-            return $this->handleIdentifier($methodAttribute->getIdentifier());
-        }
-
         if (null !== $this->identifierResolver) {
-            return $this->handleIdentifier(
-                $this->identifierResolver instanceof \Closure
-                    ? (string) $this->identifierResolver->call(
-                        $this,
-                        $reflector,
-                        $method,
-                        $methodAttribute,
-                        $classAttribute
-                    )
-                    : $this->identifierResolver->resolve(
-                        class: $reflector,
-                        method: $method,
-                        methodAttribute: $methodAttribute,
-                        classAttribute: $classAttribute,
-                    )
-            );
+            return $this->resolveWithIdentifierResolver($reflector, $method, $methodAttribute, $classAttribute);
         }
 
-        return null;
+        $baseIdentifier = $classAttribute instanceof IdentityServiceAttributeInterface && $classAttribute->hasIdentifier()
+            ? $classAttribute->getIdentifier()
+            : null;
+
+        if ($methodAttribute instanceof IdentityServiceAttributeInterface && $methodAttribute->hasIdentifier()) {
+            return implode(':', [$baseIdentifier, $methodAttribute->getIdentifier()]);
+        }
+
+        return $baseIdentifier;
     }
 
-    private function handleIdentifier(string $identifier): string
-    {
-        if (!class_exists($identifier)) {
-            throw new \LogicException(\sprintf('Identifier "%s" should be of Command class.', $identifier));
-        }
-
-        return $identifier;
+    public function resolveWithIdentifierResolver(
+        \ReflectionClass $reflector,
+        \ReflectionMethod $method,
+        object $methodAttribute,
+        object $classAttribute
+    ): string {
+        return $this->identifierResolver instanceof \Closure
+            ? (string) $this->identifierResolver->call(
+                $this,
+                $reflector,
+                $method,
+                $methodAttribute,
+                $classAttribute,
+            )
+            : $this->identifierResolver->resolve(
+                class: $reflector,
+                method: $method,
+                methodAttribute: $methodAttribute,
+                classAttribute: $classAttribute,
+            );
     }
 }
