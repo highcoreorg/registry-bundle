@@ -34,6 +34,8 @@ use Symfony\Component\DependencyInjection\Definition;
  */
 final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
 {
+    public const COMPOUND_IDENTIFIER_ERROR = 'Attribute #[%s] should have identifier, because you don\'t have IdentifierResolver for your registry or set option "compoundAttributeIdentifier" to "false"';
+
     /**
      * @property class-string<A> $targetAttributeClass
      * @property class-string<B> $targetAttributeMethod
@@ -44,6 +46,7 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
         private readonly string $targetClassAttribute,
         private readonly string $targetMethodAttribute,
         private readonly ?string $interface = null,
+        private readonly bool $compoundAttributeIdentifier = false,
         private readonly null|CallableIdentifierResolver|\Closure $identifierResolver = null,
     ) {
         parent::__construct(
@@ -133,11 +136,23 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
             ? $classAttribute->getIdentifier()
             : null;
 
-        if ($methodAttribute instanceof IdentityServiceAttributeInterface && $methodAttribute->hasIdentifier()) {
-            return implode(':', [$baseIdentifier, $methodAttribute->getIdentifier()]);
+        if (!$methodAttribute instanceof IdentityServiceAttributeInterface) {
+            return $baseIdentifier;
         }
 
-        return $baseIdentifier;
+        if ($this->compoundAttributeIdentifier && !$methodAttribute->hasIdentifier()) {
+            throw new \LogicException(sprintf(
+                self::COMPOUND_IDENTIFIER_ERROR,
+                get_class($methodAttribute),
+            ));
+        }
+
+        return $methodAttribute->hasIdentifier()
+            ? implode(':', [
+                $baseIdentifier,
+                $methodAttribute->getIdentifier(),
+            ])
+            : $baseIdentifier;
     }
 
     public function resolveWithIdentifierResolver(
