@@ -14,6 +14,7 @@ use Highcore\Component\Registry\ServiceRegistryInterface;
 use Highcore\Component\Registry\SinglePrioritizedServiceRegistryInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * @template A
@@ -71,8 +72,8 @@ abstract class AbstractAttributeRegistryPass
     {
         $this->setupRegistryDefinition($container);
 
-        foreach ($container->getDefinitions() as $definition) {
-            if (!$this->accept($definition)) {
+        foreach ($container->getDefinitions() as $key => $definition) {
+            if (!$this->accept($key, $definition)) {
                 continue;
             }
 
@@ -136,9 +137,11 @@ abstract class AbstractAttributeRegistryPass
         }
     }
 
-    protected function accept(Definition $definition): bool
+    protected function accept(string $key, Definition $definition): bool
     {
-        return $definition->isAutoconfigured() && !$definition->hasTag('container.ignore_attributes');
+        return ($definition->isAutoconfigured() && !$definition->hasTag('container.ignore_attributes'))
+            && !str_starts_with($key, '.abstract')
+            && !str_starts_with($key, '.instanceof');
     }
 
     /** @noinspection NotOptimalIfConditionsInspection */
