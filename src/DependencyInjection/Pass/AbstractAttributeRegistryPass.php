@@ -140,8 +140,8 @@ abstract class AbstractAttributeRegistryPass
     protected function accept(string $key, Definition $definition): bool
     {
         return ($definition->isAutoconfigured() && !$definition->hasTag('container.ignore_attributes'))
-            && !str_starts_with($key, '.abstract')
-            && !str_starts_with($key, '.instanceof');
+            && !$definition->isAbstract()
+            && [] === $definition->getInstanceofConditionals();
     }
 
     /** @noinspection NotOptimalIfConditionsInspection */
