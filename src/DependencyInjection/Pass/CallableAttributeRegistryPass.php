@@ -162,8 +162,7 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
         object $classAttribute
     ): string {
         return $this->identifierResolver instanceof \Closure
-            ? (string) $this->identifierResolver->call(
-                $this,
+            ? (string) ($this->identifierResolver)(
                 $reflector,
                 $method,
                 $methodAttribute,
