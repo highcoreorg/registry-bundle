@@ -68,12 +68,12 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
         Definition $definition,
         array $attributes
     ): void {
-        $this->validateAttributeWithRegistryDefinition($classAttributeInstance);
-
         static $attributeReader = new AttributeReader();
         $attributeMethodReflection = new AttributeMethodReflection($reflector, $attributeReader);
         foreach ($attributeMethodReflection->getMethodsHasAttribute($this->targetMethodAttribute) as $method) {
             $methodAttribute = $attributeReader->firstFunctionMetadata($method, $this->targetMethodAttribute);
+            $this->validateAttributesWithRegistryDefinition($classAttributeInstance, $methodAttribute);
+
             $identifier = $this->resolveIdentifier($reflector, $method, $methodAttribute, $classAttributeInstance);
 
             if (null === $identifier) {
@@ -174,5 +174,19 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
                 methodAttribute: $methodAttribute,
                 classAttribute: $classAttribute,
             );
+    }
+
+    private function validateAttributesWithRegistryDefinition(object $classAttributeInstance, mixed $methodAttribute): void
+    {
+        static $attributeConfigured = false;
+        if (false !== $attributeConfigured) {
+            return;
+        }
+
+        try {
+            $this->validateAttributeWithRegistryDefinition($classAttributeInstance);
+        } catch (\LogicException) {
+            $this->validateAttributeWithRegistryDefinition($methodAttribute);
+        }
     }
 }
