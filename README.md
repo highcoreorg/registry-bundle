@@ -6,7 +6,7 @@ This package allows you to automatically register services with specific attribu
 ## Installation
 To install this package, use Composer:
 ```bash
-composer require highcoreorg/registry-bundle
+composer require highcore/registry
 ```
 
 ## Configuration
