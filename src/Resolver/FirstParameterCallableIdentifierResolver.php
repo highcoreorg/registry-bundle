@@ -16,14 +16,6 @@ final class FirstParameterCallableIdentifierResolver implements CallableIdentifi
         object $methodAttribute,
         object $classAttribute
     ): string {
-        if (1 !== $method->getNumberOfRequiredParameters()) {
-            throw new \LogicException(\sprintf(
-                'Handler method "%s::%s" should have only one argument, argument of command',
-                $class->getName(),
-                $method->getName()
-            ));
-        }
-
         $parameter = $method->getParameters()[0];
 
         if (!$parameter->hasType()
