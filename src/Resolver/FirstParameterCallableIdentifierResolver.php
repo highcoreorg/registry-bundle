@@ -20,6 +20,7 @@ final class FirstParameterCallableIdentifierResolver implements CallableIdentifi
 
         if (!$parameter->hasType()
             || $parameter->getType() instanceof \ReflectionUnionType
+            || $parameter->getType() instanceof \ReflectionIntersectionType
             || $parameter->getType()->isBuiltin()
         ) {
             throw new \LogicException(\sprintf(
@@ -37,6 +38,6 @@ final class FirstParameterCallableIdentifierResolver implements CallableIdentifi
             ));
         }
 
-        return $parameter->getName();
+        return $parameter->getType()->getName();
     }
 }
