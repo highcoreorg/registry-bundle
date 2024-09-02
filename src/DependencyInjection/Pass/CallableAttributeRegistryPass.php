@@ -111,9 +111,12 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
                 IdentityPrioritizedServiceRegistryInterface::class => [
                     $identifier,
                     $callableDefinition,
-                    $classAttributeInstance->getPriority()
+                    $this->getPriority($classAttributeInstance, $methodAttribute)
                 ],
-                SinglePrioritizedServiceRegistryInterface::class => [$callableDefinition, $classAttributeInstance->getPriority()],
+                SinglePrioritizedServiceRegistryInterface::class => [
+                    $callableDefinition,
+                    $this->getPriority($classAttributeInstance, $methodAttribute)
+                ],
                 IdentityServiceRegistryInterface::class => [$identifier, $callableDefinition],
                 ServiceRegistryInterface::class => [$callableDefinition],
             };
@@ -188,5 +191,13 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
         } catch (\LogicException) {
             $this->validateAttributeWithRegistryDefinition($methodAttribute);
         }
+    }
+
+    public function getPriority(object $classAttributeInstance, object $methodAttribute): int
+    {
+        return $classAttributeInstance instanceof PrioritizedServiceAttributeInterface
+            ? $classAttributeInstance->getPriority()
+            : $methodAttribute->getPriority()
+            ;
     }
 }
