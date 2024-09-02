@@ -35,6 +35,7 @@ use Symfony\Component\DependencyInjection\Definition;
 final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass implements CompilerPassInterface
 {
     public const COMPOUND_IDENTIFIER_ERROR = 'Attribute #[%s] should have identifier, because you don\'t have IdentifierResolver for your registry or set option "compoundAttributeIdentifier" to "false"';
+    public const IDENTIFIER_DOES_NOT_SPECIFIED = 'Attribute #[%s] or attribute #[%s] should implements "%s" interface for providing service identifier.';
 
     /**
      * @property class-string<A> $targetAttributeClass
@@ -139,7 +140,7 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
             ? $classAttribute->getIdentifier()
             : null;
 
-        if (!$methodAttribute instanceof IdentityServiceAttributeInterface) {
+        if (null !== $baseIdentifier && !$methodAttribute instanceof IdentityServiceAttributeInterface) {
             return $baseIdentifier;
         }
 
@@ -150,12 +151,27 @@ final class CallableAttributeRegistryPass extends AbstractAttributeRegistryPass 
             ));
         }
 
-        return $methodAttribute->hasIdentifier()
-            ? implode(':', [
+        if (null === $baseIdentifier && !$methodAttribute->hasIdentifier()) {
+            throw new \LogicException(sprintf(
+                self::IDENTIFIER_DOES_NOT_SPECIFIED,
+                get_class($classAttribute),
+                get_class($methodAttribute),
+                IdentityServiceAttributeInterface::class,
+            ));
+        }
+
+        if (!$methodAttribute->hasIdentifier()) {
+            return $baseIdentifier;
+        }
+
+        if (null !== $baseIdentifier) {
+            return implode(':', [
                 $baseIdentifier,
                 $methodAttribute->getIdentifier(),
-            ])
-            : $baseIdentifier;
+            ]);
+        }
+
+        return $methodAttribute->getIdentifier();
     }
 
     public function resolveWithIdentifierResolver(
