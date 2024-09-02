@@ -111,8 +111,10 @@ declare(strict_types=1)
 
 namespace App;
 
+use Highcore\Component\Registry\Attribute\ServiceAttributeInterface;
+
 #[\Attribute(\Attribute::TARGET_CLASS)]
-class AsYourSecondResourceAttribute
+class AsYourSecondResourceAttribute implements ServiceAttributeInterface
 {
 }
 ```
