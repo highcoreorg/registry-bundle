@@ -83,7 +83,8 @@ namespace App\YourBundle\Attribute;
 use Doctrine\Common\Annotations\Annotation\NamedArgumentConstructor;
 
 #[\Attribute(\Attribute::TARGET_CLASS)]
-class AsYourResourceAttribute extends NamedArgumentConstructor implements IdentityServiceAttributeInterface
+#[NamedArgumentConstructor]
+class AsYourResourceAttribute implements IdentityServiceAttributeInterface
 {
     public function __construct(private readonly ?string $identifier = null)
     {
