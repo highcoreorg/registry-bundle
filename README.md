@@ -104,7 +104,7 @@ class AsYourResourceAttribute implements IdentityServiceAttributeInterface
 }
 ```
 
-### Registry for your second resource: Registers all services marked with the \App\AsYourSecondResourceAttribute attribute.
+Registry for your second resource: Registers all services marked with the \App\AsYourSecondResourceAttribute attribute.
 For example, for second registry we will create only attribute
 ```php
 <?php
