@@ -60,7 +60,8 @@ class YourBundle extends Bundle
 ```
 
 In this example, two registries are registered using CompilerPass:
-### Registry for your first resource: Registers all services marked with the \App\AsYourResourceAttribute attribute, and each service must implement the \App\YourServiceInterface interface.
+### Registry for your first resource: 
+Registers all services marked with the \App\AsYourResourceAttribute attribute, and each service must implement the \App\YourServiceInterface interface.
 1. **Example Interface for your first registry:**
 ```php
 <?php
@@ -104,8 +105,9 @@ class AsYourResourceAttribute implements IdentityServiceAttributeInterface
 }
 ```
 
-Registry for your second resource: Registers all services marked with the \App\AsYourSecondResourceAttribute attribute.
-For example, for second registry we will create only attribute
+### Registry for your second resource
+Registers all services marked with the \App\AsYourSecondResourceAttribute attribute.
+**For example, for second registry we will create only attribute**
 ```php
 <?php
 declare(strict_types=1)
